@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação do Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .step {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3367D6;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Verificação da Configuração do Firebase</h1>
+    <p>Esta página verifica se o seu novo projeto Firebase está configurado corretamente.</p>
+
+    <div class="step">
+        <h2>1. Verificar Conexão</h2>
+        <button id="checkConnection">Verificar Conexão</button>
+        <div id="connectionResult"></div>
+    </div>
+
+    <div class="step">
+        <h2>2. Verificar Autenticação</h2>
+        <div>
+            <input type="email" id="email" placeholder="E-mail" />
+            <input type="password" id="password" placeholder="Senha" />
+            <button id="register">Registrar</button>
+            <button id="login">Login</button>
+            <button id="logout">Logout</button>
+        </div>
+        <div id="authResult"></div>
+    </div>
+
+    <div class="step">
+        <h2>3. Verificar Firestore</h2>
+        <button id="checkFirestore">Verificar Firestore</button>
+        <div id="firestoreResult"></div>
+    </div>
+
+    <div class="step">
+        <h2>4. Verificar Regras de Segurança</h2>
+        <button id="checkRules">Verificar Regras</button>
+        <div id="rulesResult"></div>
+    </div>
+
+    <h2>Configuração Atual</h2>
+    <pre id="configDisplay"></pre>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpF7tRSkDGQ9UqmhkgDPx0h0Hdwiap2o8",
+            authDomain: "anotador-horas-extras.firebaseapp.com",
+            projectId: "anotador-horas-extras",
+            storageBucket: "anotador-horas-extras.firebasestorage.app",
+            messagingSenderId: "409284025895",
+            appId: "1:409284025895:web:97a113da77c5bb65017802"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'default-app-id';
+
+        // Mostrar configuração atual
+        document.getElementById('configDisplay').textContent = JSON.stringify(firebaseConfig, null, 2);
+
+        // 1. Verificar Conexão
+        document.getElementById('checkConnection').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('connectionResult');
+            try {
+                resultDiv.innerHTML = "<p>Tentando conectar ao Firebase...</p>";
+                
+                // Verificar se conseguimos inicializar o Firebase
+                if (app) {
+                    resultDiv.innerHTML = "<p class='success'>✅ Conexão com Firebase estabelecida com sucesso!</p>";
+                } else {
+                    resultDiv.innerHTML = "<p class='error'>❌ Falha ao conectar com Firebase.</p>";
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class='error'>❌ Erro: ${error.message}</p>`;
+                console.error("Erro de conexão:", error);
+            }
+        });
+
+        // 2. Verificar Autenticação
+        document.getElementById('register').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('authResult');
+            
+            if (!email || !password) {
+                resultDiv.innerHTML = "<p class='error'>Por favor, preencha e-mail e senha.</p>";
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = "<p>Tentando registrar usuário...</p>";
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                resultDiv.innerHTML = `<p class='success'>✅ Usuário registrado com sucesso! UID: ${userCredential.user.uid}</p>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class='error'>❌ Erro no registro: ${error.message}</p>`;
+                console.error("Erro de registro:", error);
+            }
+        });
+
+        document.getElementById('login').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('authResult');
+            
+            if (!email || !password) {
+                resultDiv.innerHTML = "<p class='error'>Por favor, preencha e-mail e senha.</p>";
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = "<p>Tentando fazer login...</p>";
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                resultDiv.innerHTML = `<p class='success'>✅ Login realizado com sucesso! UID: ${userCredential.user.uid}</p>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class='error'>❌ Erro no login: ${error.message}</p>`;
+                console.error("Erro de login:", error);
+            }
+        });
+
+        document.getElementById('logout').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('authResult');
+            try {
+                resultDiv.innerHTML = "<p>Fazendo logout...</p>";
+                await signOut(auth);
+                resultDiv.innerHTML = "<p class='success'>✅ Logout realizado com sucesso!</p>";
+            } catch (error) {
+                resultDiv.innerHTML = `<p class='error'>❌ Erro no logout: ${error.message}</p>`;
+                console.error("Erro de logout:", error);
+            }
+        });
+
+        // Monitorar estado de autenticação
+        onAuthStateChanged(auth, (user) => {
+            const resultDiv = document.getElementById('authResult');
+            if (user) {
+                resultDiv.innerHTML += `<p>Usuário atual: ${user.email} (${user.uid})</p>`;
+            } else {
+                resultDiv.innerHTML += "<p>Nenhum usuário logado.</p>";
+            }
+        });
+
+        // 3. Verificar Firestore
+        document.getElementById('checkFirestore').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('firestoreResult');
+            
+            if (!auth.currentUser) {
+                resultDiv.innerHTML = "<p class='error'>❌ Você precisa estar logado para testar o Firestore.</p>";
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = "<p>Tentando acessar o Firestore...</p>";
+                
+                // Tentar criar um documento de teste
+                const userId = auth.currentUser.uid;
+                const testDocRef = doc(db, `artifacts/${appId}/users/${userId}/user_settings/preferences`);
+                await setDoc(testDocRef, { 
+                    hourlyRate: 50,
+                    testTimestamp: new Date()
+                }, { merge: true });
+                
+                // Tentar ler o documento
+                const testEntryRef = collection(db, `artifacts/${appId}/users/${userId}/overtime_entries`);
+                await addDoc(testEntryRef, {
+                    date: new Date().toISOString().split('T')[0],
+                    startTime: "09:00",
+                    durationHours: 2,
+                    durationMinutes: 30,
+                    reason: "Teste de verificação do Firestore",
+                    isPaid: false,
+                    createdAt: new Date()
+                });
+                
+                resultDiv.innerHTML = "<p class='success'>✅ Firestore está funcionando corretamente!</p>";
+                resultDiv.innerHTML += "<p>Foi criada uma entrada de teste e configurada a taxa horária.</p>";
+            } catch (error) {
+                resultDiv.innerHTML = `<p class='error'>❌ Erro no Firestore: ${error.message}</p>`;
+                console.error("Erro do Firestore:", error);
+            }
+        });
+
+        // 4. Verificar Regras de Segurança
+        document.getElementById('checkRules').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('rulesResult');
+            
+            if (!auth.currentUser) {
+                resultDiv.innerHTML = "<p class='error'>❌ Você precisa estar logado para testar as regras de segurança.</p>";
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = "<p>Verificando regras de segurança...</p>";
+                
+                // 1. Tentar acessar dados do próprio usuário (deve funcionar)
+                const userId = auth.currentUser.uid;
+                const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/user_settings/preferences`);
+                await setDoc(userSettingsRef, { testSecurity: true }, { merge: true });
+                
+                // 2. Tentar acessar dados de outro usuário (deve falhar)
+                const fakeUserId = "usuario_que_nao_existe";
+                const otherUserRef = collection(db, `artifacts/${appId}/users/${fakeUserId}/overtime_entries`);
+                
+                try {
+                    await getDocs(otherUserRef);
+                    resultDiv.innerHTML = "<p class='error'>❌ ALERTA DE SEGURANÇA: Foi possível acessar dados de outro usuário!</p>";
+                } catch (secError) {
+                    // Isso é esperado - deve dar erro de permissão
+                    if (secError.code === "permission-denied") {
+                        resultDiv.innerHTML = "<p class='success'>✅ Regras de segurança estão funcionando corretamente!</p>";
+                        resultDiv.innerHTML += "<p>- Acesso aos próprios dados: Permitido</p>";
+                        resultDiv.innerHTML += "<p>- Acesso a dados de outros usuários: Bloqueado</p>";
+                    } else {
+                        throw secError; // Propagar outros erros
+                    }
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `<p class='error'>❌ Erro ao verificar regras: ${error.message}</p>`;
+                console.error("Erro ao verificar regras:", error);
+            }
+        });
+    </script>
+</body>
+</html> 
